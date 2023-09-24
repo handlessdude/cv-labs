@@ -8,3 +8,10 @@ filename_data = [
     'out': 'red-hist.png',
   }
 ]
+
+files_for_color_correction = [
+  {
+    'in': 'gray_world.png',
+    'out': 'gray_world.png',
+  },
+]
