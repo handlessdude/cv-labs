@@ -71,6 +71,15 @@ def linear_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
     return img_out.astype(np.uint8)
 
 
+@njit(parallel=True, cache=True)
+def logarithmic_correction(img_in: np.ndarray, img_out: np.ndarray, k: np.float32) -> np.ndarray:
+    for row in prange(0, img_out.shape[0]):
+        for col in prange(0, img_out.shape[1]):
+            img_out[row][col] = k * np.log(img_in[row][col] + 1)
+
+    return img_out.astype(np.uint8)
+
+
 def make_correction(
     img_in: np.ndarray,
     model: Callable[[np.ndarray, ...], np.ndarray],
@@ -85,15 +94,23 @@ def make_correction(
 
 
 def main():
-    for entry, model in zip(
-            data,
-            [gray_world_correction, reference_color_correction, linear_correction]
-    ):
+    for entry, model in zip(data, [
+        gray_world_correction,
+        reference_color_correction,
+        linear_correction,
+        logarithmic_correction
+    ]):
         img_in = open_img(dir_in, entry['in'])
         if img_in.shape[2] == 4:
             img_in = img_in[:, :, 0:3]
         subfolder = make_path(dir_out, entry['subfolder'])
-        img_out = make_correction(img_in, model, subfolder, entry['out'], *entry['additional_args'])
+        img_out = make_correction(
+            img_in,
+            model,
+            subfolder,
+            entry['out'],
+          *entry['additional_args']
+        )
         plot_channel_hists(img_in, subfolder, entry['in_hist'])
         plot_channel_hists(img_out, subfolder, entry['out_hist'])
 

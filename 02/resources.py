@@ -40,4 +40,12 @@ files_for_color_correction = [
     'out_hist': 'linear_out_hist.png',
     'additional_args': []
   },
+  {
+    'subfolder': 'logarithm',
+    'in': 'logarithm.png',
+    'out': 'logarithm.png',
+    'in_hist': 'logarithm_in_hist.png',
+    'out_hist': 'logarithm_out_hist.png',
+    'additional_args': [35]
+  },
 ]
