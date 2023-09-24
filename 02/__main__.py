@@ -13,7 +13,6 @@
 from utils.fs import open_img, save_img, make_path
 from resources import files_for_color_correction as data
 from utils.image_hist import plot_channel_hists
-from utils.array_processing import map_arr
 import numpy as np
 from numba import njit, prange
 from typing import Callable
@@ -54,6 +53,24 @@ def reference_color_correction(
     return img_out.astype(np.uint8)
 
 
+@njit(parallel=True, cache=True)
+def linear_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
+    ymin = np.array([np.inf, np.inf, np.inf])
+    ymax = np.array([-np.inf, -np.inf, -np.inf])
+    for row in prange(0, img_in.shape[0]):
+        for col in prange(0, img_in.shape[1]):
+            for i in range(3):
+                ymin[i] = min(ymin[i], img_in[row][col][i])
+                ymax[i] = max(ymax[i], img_in[row][col][i])
+
+    cfs = np.array([255, 255, 255]) / (ymax - ymin)
+    for row in prange(0, img_out.shape[0]):
+        for col in prange(0, img_out.shape[1]):
+            img_out[row][col] = (img_in[row][col] - ymin) * cfs
+
+    return img_out.astype(np.uint8)
+
+
 def make_correction(
     img_in: np.ndarray,
     model: Callable[[np.ndarray, ...], np.ndarray],
@@ -70,7 +87,7 @@ def make_correction(
 def main():
     for entry, model in zip(
             data,
-            [gray_world_correction, reference_color_correction]
+            [gray_world_correction, reference_color_correction, linear_correction]
     ):
         img_in = open_img(dir_in, entry['in'])
         if img_in.shape[2] == 4:

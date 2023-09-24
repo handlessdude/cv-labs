@@ -32,4 +32,12 @@ files_for_color_correction = [
         np.array([255, 1, 1]),  # src
     ]
   },
+  {
+    'subfolder': 'linear',
+    'in': 'linear.png',
+    'out': 'linear.png',
+    'in_hist': 'linear_in_hist.png',
+    'out_hist': 'linear_out_hist.png',
+    'additional_args': []
+  },
 ]
