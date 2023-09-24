@@ -9,7 +9,7 @@ def describe_channels(img: np.ndarray):
     r_intensities, g_intensities, b_intensities = np.zeros(256), np.zeros(256), np.zeros(256)
     for row in prange(0, img.shape[0]):
         for col in prange(0, img.shape[1]):
-            ri, gi, bi = img[row][col][0], img[row][col][1], img[row][col][2]
+            ri, gi, bi = img[row][col]
             r_intensities[ri] += 1
             g_intensities[gi] += 1
             b_intensities[bi] += 1

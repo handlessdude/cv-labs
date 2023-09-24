@@ -10,8 +10,10 @@
 #   3.2 Эквализация гистограммы
 
 
-from utils.fs import open_img, save_img
+from utils.fs import open_img, save_img, make_path
 from resources import files_for_color_correction as data
+from utils.image_hist import plot_channel_hists
+from utils.array_processing import map_arr
 import numpy as np
 from numba import njit, prange
 from typing import Callable
@@ -21,8 +23,8 @@ dir_in = "../inputs/02"
 dir_out = "../outputs/02"
 
 
-@njit(parallel=True)
-def gray_world(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
+@njit(parallel=True, cache=True)
+def gray_world_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
     means = np.zeros(3)
     for row in prange(0, img_in.shape[0]):
         for col in prange(0, img_in.shape[1]):
@@ -33,28 +35,50 @@ def gray_world(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
     k = np.array([avg / ch_mean for ch_mean in means]).astype(np.float32)
     for row in prange(0, img_out.shape[0]):
         for col in prange(0, img_out.shape[1]):
-            for i in range(3):
-                img_out[row][col] = img_in[row][col] * k
+            img_out[row][col] = img_in[row][col] * k
+
     return img_out
+
+
+@njit(parallel=True, cache=True)
+def reference_color_correction(
+    img_in: np.ndarray,
+    img_out: np.ndarray,
+    dst: np.ndarray,
+    src: np.ndarray,
+) -> np.ndarray:
+    k = dst / src
+    for row in prange(0, img_out.shape[0]):
+        for col in prange(0, img_out.shape[1]):
+            img_out[row][col] = img_in[row][col] * k
+    return img_out.astype(np.uint8)
 
 
 def make_correction(
     img_in: np.ndarray,
-    model: Callable[[np.ndarray], np.ndarray],
+    model: Callable[[np.ndarray, ...], np.ndarray],
     dir_out: str,
-    filename_out: str
+    filename_out: str,
+    *args
 ):
     img_out = np.copy(img_in)
-    model(img_in, img_out)
+    model(img_in, img_out, *args)
     save_img(img_out, dir_out, filename_out)
+    return img_out
 
 
 def main():
-    for entry in data:
+    for entry, model in zip(
+            data,
+            [gray_world_correction, reference_color_correction]
+    ):
         img_in = open_img(dir_in, entry['in'])
         if img_in.shape[2] == 4:
             img_in = img_in[:, :, 0:3]
-        make_correction(img_in, gray_world, dir_out, entry['out'])
+        subfolder = make_path(dir_out, entry['subfolder'])
+        img_out = make_correction(img_in, model, subfolder, entry['out'], *entry['additional_args'])
+        plot_channel_hists(img_in, subfolder, entry['in_hist'])
+        plot_channel_hists(img_out, subfolder, entry['out_hist'])
 
 
 if __name__ == '__main__':

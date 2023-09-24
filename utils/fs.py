@@ -18,6 +18,8 @@ def save_plot(dir_out: str, filename_out: str):
     if not os.path.exists(dir_out):
         os.makedirs(dir_out)
     plt.savefig(make_path(dir_out, filename_out))
+    plt.cla()
+    plt.clf()
 
 
 def open_img(dir_in: str, filename_in: str):
