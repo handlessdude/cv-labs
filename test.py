@@ -1,7 +1,9 @@
 import numpy as np
 from PIL import Image
-from utils.grayscale import convert_to_grayscale, to_gray_v1
 import os
+from functools import partial
+from utils.grayscale import to_gray_v1
+from utils.array_processing import map_arr
 
 
 inputs_dir = "./inputs"
@@ -21,11 +23,11 @@ def save_img(img: np.ndarray, dir: str, filename: str):
 filename_in = "red-hibiscus.jpg"
 filename_out = "red-hibiscus-test.jpg"
 
+
+convert_to_grayscale = partial(map_arr, callback=to_gray_v1)
+
+
 img_in = np.asarray(Image.open(make_path(filename_in, inputs_dir)))
 img_out = np.copy(img_in)
-converted = convert_to_grayscale(img_in, img_out, to_gray_v1)
+converted = convert_to_grayscale(img_in, img_out)
 save_img(converted, outputs_dir, filename_out)
-
-# first_img = convert_to_grayscale(filename, 'res1.png', to_gray_v1)
-# second_img = convert_to_grayscale(filename, 'res2.png', to_gray_v2)
-# pics_diff(first_img, second_img, "diff_res.png")
