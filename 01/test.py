@@ -6,8 +6,8 @@ from utils.grayscale import to_gray_v1
 from utils.array_processing import map_arr
 
 
-inputs_dir = "./inputs"
-outputs_dir = "./outputs"
+inputs_dir = "../inputs"
+outputs_dir = "../outputs"
 
 
 def make_path(filename: str, inputs_dir: str):

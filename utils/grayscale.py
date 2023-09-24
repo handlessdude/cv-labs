@@ -1,6 +1,6 @@
 import numpy as np
-from numba import njit, prange
-from typing import Callable
+from numba import njit
+
 
 cfs_v1 = np.array([0.3, 0.59, 0.11], dtype=np.float32)
 
