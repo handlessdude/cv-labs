@@ -9,10 +9,12 @@
 #   3.1 Нормализация гистограммы
 #   3.2 Эквализация гистограммы
 
+
 from numba import njit, prange
 import numpy as np
 import matplotlib.pyplot as plt
 from utils.fs import make_path, open_img, save_plot
+from resources import filename_data
 
 
 dir_in = "../inputs"
@@ -39,12 +41,10 @@ def plot_channel_hists(img: np.ndarray, dir_out: str, filename_out: str):
     save_plot(dir_out, filename_out)
 
 
-filename_in = 'red-hibiscus.jpg'
-
-
 def main():
-    img = open_img(dir_in, filename_in)
-    plot_channel_hists(img, dir_out, 'red-hibiscus-hist.png')
+    for data in filename_data:
+        img = open_img(dir_in, data['in'])
+        plot_channel_hists(img, dir_out,  data['out'])
 
 
 if __name__ == '__main__':
