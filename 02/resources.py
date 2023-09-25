@@ -48,4 +48,12 @@ files_for_color_correction = [
     'out_hist': 'logarithm_out_hist.png',
     'additional_args': [35]
   },
+  {
+    'subfolder': 'normalization',
+    'in': 'normalization.png',
+    'out': 'normalization.png',
+    'in_hist': 'normalization_in_hist.png',
+    'out_hist': 'normalization_out_hist.png',
+    'additional_args': []
+  },
 ]

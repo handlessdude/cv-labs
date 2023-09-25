@@ -1,7 +1,7 @@
 # 1. Цветовая коррекция изображений s. 18
 #   1.1 Коррекция с опорным цветом [x]
 #   1.2 Серый мир [x]
-#   1.3 По виду функции преобразования
+#   1.3 По виду функции преобразования [x]
 # 2. Яркостная коррекция в интерактивном режиме по виду функции преобразования (необязательное дополнительное задание)
 #   2.1 График функции кусочно линейный
 #   2.2 График функции интерполируется сплайном
@@ -80,6 +80,31 @@ def logarithmic_correction(img_in: np.ndarray, img_out: np.ndarray, k: np.float3
     return img_out.astype(np.uint8)
 
 
+from utils.image_hist import describe_channels
+
+
+@njit
+def normalized_hists(img_in: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray):
+    r_hist, g_hist, b_hist = describe_channels(img_in)
+    k = img_in.shape[0] * img_in.shape[1]  # for every hist: sum of bins = k
+    return r_hist / k, g_hist / k, b_hist / k
+
+
+from PIL import Image
+
+@njit(parallel=True, cache=True)
+def normalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
+    r_norm, g_norm, b_norm = normalized_hists(img_in)
+    ymin = np.array([np.min(arr) for arr in [r_norm, g_norm, b_norm]])
+    ymax = np.array([np.max(arr) for arr in [r_norm, g_norm, b_norm]])
+    bin_range = (ymax - ymin)
+    for row in prange(0, img_out.shape[0]):
+        for col in prange(0, img_out.shape[1]):
+            img_out[row][col] = (img_in[row][col] - ymin) * 255 / bin_range
+
+    return img_out.clip(0, 255).astype(np.uint8)
+
+
 def make_correction(
     img_in: np.ndarray,
     model: Callable[[np.ndarray, ...], np.ndarray],
@@ -94,12 +119,18 @@ def make_correction(
 
 
 def main():
+    print('Process start...')
+    fns_to_use = set([normalization_correction])
     for entry, model in zip(data, [
         gray_world_correction,
         reference_color_correction,
         linear_correction,
-        logarithmic_correction
+        logarithmic_correction,
+        normalization_correction
     ]):
+        if not model in fns_to_use:
+            print('skipping model')
+            continue
         img_in = open_img(dir_in, entry['in'])
         if img_in.shape[2] == 4:
             img_in = img_in[:, :, 0:3]
@@ -113,6 +144,7 @@ def main():
         )
         plot_channel_hists(img_in, subfolder, entry['in_hist'])
         plot_channel_hists(img_out, subfolder, entry['out_hist'])
+    print('Done!')
 
 
 if __name__ == '__main__':

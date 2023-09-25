@@ -5,7 +5,7 @@ from utils.fs import save_plot
 
 
 @njit(parallel=True, cache=True)
-def describe_channels(img: np.ndarray):
+def describe_channels(img: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray):
     r_intensities, g_intensities, b_intensities = np.zeros(256), np.zeros(256), np.zeros(256)
     for row in prange(0, img.shape[0]):
         for col in prange(0, img.shape[1]):
