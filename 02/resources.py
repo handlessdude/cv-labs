@@ -56,4 +56,12 @@ files_for_color_correction = [
     'out_hist': 'normalization_out_hist.png',
     'additional_args': []
   },
+  {
+    'subfolder': 'equalization',
+    'in': 'normalization.png',
+    'out': 'equalization.png',
+    'in_hist': 'equalization_in_hist.png',
+    'out_hist': 'equalization_out_hist.png',
+    'additional_args': []
+  },
 ]

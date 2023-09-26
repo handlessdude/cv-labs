@@ -90,19 +90,56 @@ def normalized_hists(img_in: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray)
     return r_hist / k, g_hist / k, b_hist / k
 
 
-from PIL import Image
+# TODO redo
+@njit
+def make_lut(src_hist: np.ndarray, dst_hist: np.ndarray):
+    ymin = src_hist.min()
+    ymax = src_hist.max()
+    return ((dst_hist - ymin) * 255 / (ymax - ymin)).astype(np.uint8)
 
+# TODO redo
 @njit(parallel=True, cache=True)
 def normalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
+    r_hist, g_hist, b_hist = describe_channels(img_in)
     r_norm, g_norm, b_norm = normalized_hists(img_in)
-    ymin = np.array([np.min(arr) for arr in [r_norm, g_norm, b_norm]])
-    ymax = np.array([np.max(arr) for arr in [r_norm, g_norm, b_norm]])
-    bin_range = (ymax - ymin)
+
+    r_lut = make_lut(r_hist, r_norm)
+    g_lut = make_lut(g_hist, g_norm)
+    b_lut = make_lut(b_hist, b_norm)
+
+    lut = [r_lut, g_lut, b_lut]
     for row in prange(0, img_out.shape[0]):
         for col in prange(0, img_out.shape[1]):
-            img_out[row][col] = (img_in[row][col] - ymin) * 255 / bin_range
+            for i in range(3):
+                img_out[row][col][i] = lut[i][img_in[row][col][i]]
 
-    return img_out.clip(0, 255).astype(np.uint8)
+    return img_out.astype(np.uint8)
+
+
+# TODO redo
+def equalize_channel(channel: np.ndarray):
+    # Calculate the histogram of the channel
+    hist, bins = np.histogram(channel, bins=256, range=(0, 256))
+    # Calculate the cumulative distribution function (CDF)
+    cdf = hist.cumsum()
+    # Normalize the CDF to have values between 0 and 255
+    cdf_normalized = ((cdf - cdf.min()) * 255) / (cdf.max() - cdf.min())
+    # Interpolate the channel values based on the normalized CDF
+    equalized_channel = np.interp(channel, bins[:-1], cdf_normalized)
+    return equalized_channel.astype(np.uint8)
+
+
+# TODO redo
+def equalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
+    # Split the image into its Red, Green, and Blue channels
+    r, g, b = img_in[:, :, 0], img_in[:, :, 1], img_in[:, :, 2]
+    # Apply histogram equalization to each channel
+    r_eq = equalize_channel(r)
+    g_eq = equalize_channel(g)
+    b_eq = equalize_channel(b)
+    # Stack the equalized channels to form the corrected image
+    img_out = np.dstack((r_eq, g_eq, b_eq))
+    return img_out
 
 
 def make_correction(
@@ -120,13 +157,14 @@ def make_correction(
 
 def main():
     print('Process start...')
-    fns_to_use = set([normalization_correction])
+    fns_to_use = set([equalization_correction])
     for entry, model in zip(data, [
         gray_world_correction,
         reference_color_correction,
         linear_correction,
         logarithmic_correction,
-        normalization_correction
+        normalization_correction,
+        equalization_correction
     ]):
         if not model in fns_to_use:
             print('skipping model')
