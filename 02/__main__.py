@@ -5,9 +5,9 @@
 # 2. Яркостная коррекция в интерактивном режиме по виду функции преобразования (необязательное дополнительное задание)
 #   2.1 График функции кусочно линейный
 #   2.2 График функции интерполируется сплайном
-# 3. Коррекция на основе гистограммы
-#   3.1 Нормализация гистограммы
-#   3.2 Эквализация гистограммы
+# 3. Коррекция на основе гистограммы [x]
+#   3.1 Нормализация гистограммы [x]
+#   3.2 Эквализация гистограммы [x]
 
 
 from utils.fs import open_img, save_img, make_path
@@ -16,6 +16,7 @@ from utils.image_hist import plot_channel_hists
 import numpy as np
 from numba import njit, prange
 from typing import Callable
+from utils.image_hist import describe_channels
 
 
 dir_in = "../inputs/02"
@@ -57,8 +58,8 @@ def reference_color_correction(
 def linear_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
     ymin = np.array([np.inf, np.inf, np.inf])
     ymax = np.array([-np.inf, -np.inf, -np.inf])
-    for row in prange(0, img_in.shape[0]):
-        for col in prange(0, img_in.shape[1]):
+    for row in range(0, img_in.shape[0]):
+        for col in range(0, img_in.shape[1]):
             for i in range(3):
                 ymin[i] = min(ymin[i], img_in[row][col][i])
                 ymax[i] = max(ymax[i], img_in[row][col][i])
@@ -80,7 +81,27 @@ def logarithmic_correction(img_in: np.ndarray, img_out: np.ndarray, k: np.float3
     return img_out.astype(np.uint8)
 
 
-from utils.image_hist import describe_channels
+# todo check
+@njit
+def make_lut(xp: np.ndarray, fp: np.ndarray):
+    return np.interp([x for x in range(256)], xp, fp)
+
+@njit(parallel=True, cache=True)
+def normalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
+    imax, imin = -np.inf, np.inf
+    for x in range(img_in.shape[0]):
+        for y in range(img_in.shape[1]):
+            for i in range(3):
+                imax = max(imax, img_in[x][y][i])
+                imin = min(imin, img_in[x][y][i])
+
+    cfs = 255 / (imax - imin)
+
+    for row in prange(0, img_in.shape[0]):
+        for col in prange(0, img_in.shape[1]):
+            img_out[row][col] = (img_in[row][col] - imin) * cfs
+
+    return img_out
 
 
 @njit
@@ -90,56 +111,18 @@ def normalized_hists(img_in: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray)
     return r_hist / k, g_hist / k, b_hist / k
 
 
-# TODO redo
-@njit
-def make_lut(src_hist: np.ndarray, dst_hist: np.ndarray):
-    ymin = src_hist.min()
-    ymax = src_hist.max()
-    return ((dst_hist - ymin) * 255 / (ymax - ymin)).astype(np.uint8)
-
-# TODO redo
 @njit(parallel=True, cache=True)
-def normalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
-    r_hist, g_hist, b_hist = describe_channels(img_in)
-    r_norm, g_norm, b_norm = normalized_hists(img_in)
-
-    r_lut = make_lut(r_hist, r_norm)
-    g_lut = make_lut(g_hist, g_norm)
-    b_lut = make_lut(b_hist, b_norm)
-
-    lut = [r_lut, g_lut, b_lut]
-    for row in prange(0, img_out.shape[0]):
-        for col in prange(0, img_out.shape[1]):
-            for i in range(3):
-                img_out[row][col][i] = lut[i][img_in[row][col][i]]
-
-    return img_out.astype(np.uint8)
-
-
-# TODO redo
-def equalize_channel(channel: np.ndarray):
-    # Calculate the histogram of the channel
-    hist, bins = np.histogram(channel, bins=256, range=(0, 256))
-    # Calculate the cumulative distribution function (CDF)
-    cdf = hist.cumsum()
-    # Normalize the CDF to have values between 0 and 255
-    cdf_normalized = ((cdf - cdf.min()) * 255) / (cdf.max() - cdf.min())
-    # Interpolate the channel values based on the normalized CDF
-    equalized_channel = np.interp(channel, bins[:-1], cdf_normalized)
-    return equalized_channel.astype(np.uint8)
-
-
-# TODO redo
 def equalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
-    # Split the image into its Red, Green, and Blue channels
-    r, g, b = img_in[:, :, 0], img_in[:, :, 1], img_in[:, :, 2]
-    # Apply histogram equalization to each channel
-    r_eq = equalize_channel(r)
-    g_eq = equalize_channel(g)
-    b_eq = equalize_channel(b)
-    # Stack the equalized channels to form the corrected image
-    img_out = np.dstack((r_eq, g_eq, b_eq))
+    r_norm, g_norm, b_norm = normalized_hists(img_in)
+    r_cm, g_cm, b_cm = r_norm.cumsum(), g_norm.cumsum(), b_norm.cumsum()
+
+    for row in prange(0, img_in.shape[0]):
+        for col in prange(0, img_in.shape[1]):
+            ri, gi, bi = img_in[row][col]
+            img_out[row][col] = 255 * np.array([r_cm[ri], g_cm[gi], b_cm[bi]])
+
     return img_out
+
 
 
 def make_correction(
@@ -157,7 +140,14 @@ def make_correction(
 
 def main():
     print('Process start...')
-    fns_to_use = set([equalization_correction])
+    fns_to_use = set([
+        gray_world_correction,
+        reference_color_correction,
+        linear_correction,
+        logarithmic_correction,
+        normalization_correction,
+        equalization_correction
+    ])
     for entry, model in zip(data, [
         gray_world_correction,
         reference_color_correction,
