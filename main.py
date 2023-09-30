@@ -8,6 +8,10 @@ from fastapi.exceptions import ValidationException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Query
+from loguru import logger
+
+logger.add("app.log", rotation="500 MB", retention="7 days", level="INFO")
+
 
 app = FastAPI(
   title="CV-labs"
@@ -58,8 +62,10 @@ async def color_correction_spline(
   xp: List[float] = Query(description="Array of x coordinates of interpolation points"),
   fp: List[float] = Query(description="Array of y coordinates of interpolation points"),
 ):
-    print(xp, fp, img)
+    img_id = uuid4()
+    logger.info("Processing image {img_id} with spline {xp}, {fp}", img_id=img_id, xp=xp, fp=fp)
+    logger.info("Processing image {img_id} done", img_id=img_id)
     return {
-      "id": uuid4(),
+      "id": img_id,
       "data": "this is placeholder."
     }
