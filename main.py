@@ -1,65 +1,65 @@
-# 1. Загрузка изображения
-# 2. Преобразование к полутоновому изображению двумя способами:
-# 1) Gray=0.3*R+0.59*G+0.11*B;
-# 2) Gray=(R + G + B)/3,
-# 3. Получить разность этих полутоновых изображений
-# 4. Взять фрагмент видео и покадрово обрабатывать:
-#   1) преобразовывать к полутоновому
-#   2) получать разность между соседними кадрами,. Типа примитивнейший датчик движения))
+from typing import List
+from pydantic import BaseModel
+from pydantic import UUID4
+from uuid import uuid4
+from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import ValidationException
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi import Query
 
-import os
-import sys
-import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
-
-inputs_dir = "./inputs"
-outputs_dir = "./outputs"
-
-def make_path(filename, inputs_dir):
-    return inputs_dir + '/' + filename
-
-def to_gray_v1(pixel):
-    R, G, B = pixel[0], pixel[1], pixel[2],
-    k = 0.3 * R + 0.59 * G + 0.11 * B
-    return [k for _ in range(3)]
-
-def to_gray_v2(pixel):
-    R, G, B = pixel[0], pixel[1], pixel[2],
-    gamma = 1 / 3
-    k = gamma * R + gamma * G + gamma * B
-    return np.array([k for _ in range(3)]).astype(np.uint8)
-
-def save_img(img, filename):
-    temp = Image.fromarray(img.astype(np.uint8))
-    temp.save(filename)
-
-# todo
-# def apply(obj, callback):
-#     callback_v = np.vectorize(callback)
-#     return callback_v(obj)
-
-def convert_to_grayscale(filename_in, filename_out, model):
-    img = Image.open(make_path(filename_in, inputs_dir))
-    img_as_array = np.asarray(img)
-    converted_img = np.array([np.array([model(pixel) for pixel in line]) for line in img_as_array])
-    save_img(converted_img, make_path(filename_out, outputs_dir))
-    return converted_img
+app = FastAPI(
+  title="CV-labs"
+)
 
 
-def pics_diff(first_img_in, second_img_in, filename_out):
-    x = first_img_in.astype(np.float32) - second_img_in.astype(np.float32)
-    converted_img = (255 * (x - x.min()) / (x.max() - x.min())).astype(np.uint8)
-    save_img(converted_img, make_path(filename_out, outputs_dir))
-    return converted_img
+origins = [
+    "http://localhost:9000",
+    "http://localhost:8000",
+]
 
-# TODO uncomment
-# filename = "red-hibiscus.jpg"
-# first_img = convert_to_grayscale(filename, 'res1.png', to_gray_v1)
-# second_img = convert_to_grayscale(filename, 'res2.png', to_gray_v2)
-#
-#
-# pics_diff(first_img, second_img, "diff_res.png")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS", "DELETE", "PATCH", "PUT"],
+    allow_headers=[
+      "Content-Type",
+      "Set-Cookie",
+      "Access-Control-Allow-Headers",
+      "Access-Control-Allow-Origin",
+      "Authorization",
+    ],
+)
 
-# PART TWO
 
+@app.exception_handler(ValidationException)
+async def validation_exception_handler(request: Request, exc: ValidationException):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=jsonable_encoder({"detail": exc.errors()}),
+    )
+
+
+class CorrectionOut(BaseModel):
+    id: UUID4
+    data: str
+
+
+@app.get(
+    path="/color-correction/spline",
+    name="color-correction:spline",
+    response_model=CorrectionOut,
+    status_code=status.HTTP_200_OK,
+)
+async def color_correction_spline(
+  img: str = Query(description="Image source in base64 format"),
+  xp: List[float] = Query(description="Array of x coordinates of interpolation points"),
+  fp: List[float] = Query(description="Array of y coordinates of interpolation points"),
+):
+    print(xp, fp, img)
+    return {
+      "id": uuid4(),
+      "data": "this is placeholder."
+    }
