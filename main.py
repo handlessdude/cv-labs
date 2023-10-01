@@ -62,10 +62,25 @@ async def sanity_check():
     }
 
 
-class CorrectionOut(BaseModel):
+class ImageHist(BaseModel):
+    r: List[int]
+    g: List[int]
+    b: List[int]
+
+
+class ImageSchema(BaseModel):
     id: UUID4
-    img: str
-    hist: List[int]
+    img_src: str
+    hist: ImageHist
+
+
+class CorrectionOut(BaseModel):
+    img_in: ImageSchema
+    img_out: ImageSchema
+
+
+dir_in = './inputs/02'
+default_image = 'normalization.png'
 
 
 @app.get(
@@ -75,39 +90,42 @@ class CorrectionOut(BaseModel):
     status_code=status.HTTP_200_OK,
 )
 async def color_correction_spline(
-  # img: str = Query(description="Image source in base64 format"),
-  xp: List[float] = Depends(parse_list),
-  fp: List[float] = Depends(parse_list),
+    # img: str = Query(description="Image source in base64 format"),
+    name: str = Query(description="Image name", default=default_image),
+    xp: List[float] = Depends(parse_list),
+    fp: List[float] = Depends(parse_list),
 ):
-    img_id = uuid4()
-    logger.info("Processing image {img_id} with spline {xp}, {fp}", img_id=img_id, xp=xp, fp=fp)
-    logger.info("Processing image {img_id} done", img_id=img_id)
-    return {
-      "id": img_id,
-      "img": "",
-      "hist": [1, 2, 3],
-    }
+    img_in_id = uuid4()
+    logger.info("Processing image {img_id} with spline {xp}, {fp}", img_id=img_in_id, xp=xp, fp=fp)
+    img_in = open_img(dir_in, name)
+    r_intensities, g_intensities, b_intensities = describe_channels(np.asarray(img_in))
+    buffer_in = BytesIO()
+    Image.fromarray(img_in).save(buffer_in, format="PNG")
+    img_in_schema = ImageSchema(
+        id=img_in_id,
+        img_src="data:image/png;base64," + base64.b64encode(buffer_in.getvalue()).decode("utf-8"),
+        hist=ImageHist(r=r_intensities, g=g_intensities, b=b_intensities)
+    )
 
-dir_in = './inputs/02'
-default_image = 'normalization.png'
+    # some calculations...
+    img_out_id = uuid4()
+    img_out_schema = ImageSchema(
+        id=img_out_id,
+        img_src="data:image/png;base64," + base64.b64encode(buffer_in.getvalue()).decode("utf-8"),
+        hist=ImageHist(r=r_intensities, g=g_intensities, b=b_intensities)
+    )
+    logger.info("Processing image {img_id} done", img_id=img_in_id)
+    return CorrectionOut(
+        img_in=img_in_schema,
+        img_out=img_out_schema
+    )
 
-
-class ImageHist(BaseModel):
-    r: List[int]
-    g: List[int]
-    b: List[int]
-
-
-class ImageOut(BaseModel):
-    id: UUID4
-    img: str
-    hist: ImageHist
 
 @njit(cache=True)
 @app.get(
     path="/image",
     name="image:sample",
-    response_model=ImageOut,
+    response_model=ImageSchema,
     status_code=status.HTTP_200_OK,
 )
 async def get_image(
@@ -118,9 +136,9 @@ async def get_image(
     r_intensities, g_intensities, b_intensities = describe_channels(np.asarray(img))
     buffer = BytesIO()
     Image.fromarray(img).save(buffer, format="PNG")
-    return ImageOut(
+    return ImageSchema(
         id=img_id,
-        img="data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8"),
+        img_src="data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8"),
         hist=ImageHist(r=r_intensities, g=g_intensities, b=b_intensities)
     )
 
