@@ -1,4 +1,4 @@
-from utils.fs import open_img, save_img, make_path
+from utils.io.fs import open_img, save_img, make_path
 from resources import files_for_color_correction as data
 from utils.image_hist import plot_channel_hists
 from utils.color_correction import *

@@ -1,7 +1,7 @@
 from numba import njit
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.fs import save_plot
+from utils.io.fs import save_plot
 
 
 @njit(cache=True)

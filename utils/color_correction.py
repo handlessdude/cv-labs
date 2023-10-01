@@ -1,4 +1,4 @@
-from utils.fs import save_img
+from utils.io.fs import save_img
 import numpy as np
 from numba import njit, prange
 from typing import Callable

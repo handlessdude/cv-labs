@@ -3,7 +3,7 @@ from PIL import Image
 from functools import partial
 from utils.grayscale import to_gray_v1
 from utils.array_processing import map_arr
-from utils.fs import save_img
+from utils.io.fs import save_img
 
 
 inputs_dir = "../inputs"
