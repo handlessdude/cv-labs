@@ -3,6 +3,8 @@ import numpy as np
 from numba import njit, prange
 from typing import Callable
 from utils.image_hist import normalized_hists
+import scipy.interpolate as inp
+import cv2
 
 
 @njit(parallel=True, cache=True)
@@ -63,13 +65,6 @@ def logarithmic_correction(img_in: np.ndarray, img_out: np.ndarray, k: np.float3
     return img_out.astype(np.uint8)
 
 
-
-# todo check
-@njit
-def make_lut(xp: np.ndarray, fp: np.ndarray):
-    return np.interp([x for x in range(256)], xp, fp)
-
-
 @njit(parallel=True, cache=True)
 def normalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
     imax, imin = -np.inf, np.inf
@@ -101,14 +96,29 @@ def equalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarr
     return img_out
 
 
+def spline_correction(
+        img_in: np.ndarray,
+        img_out: np.ndarray,
+        xp: np.ndarray,
+        fp: np.ndarray,
+) -> np.ndarray:
+    spline = inp.CubicSpline(xp, fp)
+    intensities = np.arange(256)
+    lut = np.clip(spline(intensities), 0, 255).astype(np.uint8)
+    cv2.LUT(img_in, lut, img_out).astype(np.uint8)
+    return img_out
+
+
 def make_correction(
-  img_in: np.ndarray,
-  model: Callable[[np.ndarray, ...], np.ndarray],
-  dir_out: str,
-  filename_out: str,
-  *args
+    img_in: np.ndarray,
+    model: Callable[[np.ndarray, ...], np.ndarray],
+    *args,
+    **kwargs
 ):
     img_out = np.copy(img_in)
     model(img_in, img_out, *args)
-    save_img(img_out, dir_out, filename_out)
+    dir_out = kwargs.get('dir_out', None)
+    filename_out = kwargs.get('filename_out', None)
+    if dir_out and filename_out:
+        save_img(img_out, dir_out, filename_out)
     return img_out

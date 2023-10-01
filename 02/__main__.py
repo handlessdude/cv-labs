@@ -35,9 +35,9 @@ def main():
         img_out = make_correction(
             img_in,
             model,
-            subfolder,
-            entry['out'],
-          *entry['additional_args']
+            *entry['additional_args'],
+            dir_out=subfolder,
+            filename_out=entry['out'],
         )
         plot_channel_hists(img_in, subfolder, entry['in_hist'])
         plot_channel_hists(img_out, subfolder, entry['out_hist'])

@@ -2,8 +2,7 @@ from typing import List, Optional
 from fastapi import Query
 
 
-# todo typing?
-def parse_list(names: List[str] = Query(None)) -> Optional[List]:
+def parse_list(names: List[float] = Query(None)) -> Optional[List]:
     """
     accepts strings formatted as lists with square brackets
     names can be in the format
