@@ -120,7 +120,7 @@ async def get_image(
     Image.fromarray(img).save(buffer, format="PNG")
     return ImageOut(
         id=img_id,
-        img=base64.b64encode(buffer.getvalue()).decode("utf-8"),
+        img="data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8"),
         hist=ImageHist(r=r_intensities, g=g_intensities, b=b_intensities)
     )
 
