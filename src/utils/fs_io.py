@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 def make_path(dir_in: str, filename_in: str):
-    return dir_in + '/' + filename_in
+    return os.path.join(dir_in, filename_in)
 
 
 def save_img(img: np.ndarray, dir_out: str, filename_out: str):

@@ -1,12 +1,16 @@
 from numba import njit
 import numpy as np
 import matplotlib.pyplot as plt
-from utils.io.fs import save_plot
+from src.utils.fs_io import save_plot
 
 
 @njit(cache=True)
 def describe_channels(img: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray):
-    r_intensities, g_intensities, b_intensities = np.zeros(256), np.zeros(256), np.zeros(256)
+    r_intensities, g_intensities, b_intensities = (
+        np.zeros(256),
+        np.zeros(256),
+        np.zeros(256),
+    )
     for row in range(0, img.shape[0]):
         for col in range(0, img.shape[1]):
             ri, gi, bi = img[row][col]
@@ -25,8 +29,7 @@ def normalized_hists(img_in: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray)
 
 def plot_channel_hists(img: np.ndarray, dir_out: str, filename_out: str):
     r_intensities, g_intensities, b_intensities = describe_channels(img)
-    plt.plot(range(256), r_intensities, 'r')
-    plt.plot(range(256), g_intensities, 'g')
-    plt.plot(range(256), b_intensities, 'b')
+    plt.plot(range(256), r_intensities, "r")
+    plt.plot(range(256), g_intensities, "g")
+    plt.plot(range(256), b_intensities, "b")
     save_plot(dir_out, filename_out)
-

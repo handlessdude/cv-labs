@@ -1,8 +1,6 @@
-from utils.io.fs import save_img
 import numpy as np
 from numba import njit, prange
-from typing import Callable
-from utils.image_hist import normalized_hists
+from src.utils.image_hist import normalized_hists
 import scipy.interpolate as inp
 import cv2
 
@@ -57,7 +55,9 @@ def linear_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
 
 
 @njit(parallel=True, cache=True)
-def logarithmic_correction(img_in: np.ndarray, img_out: np.ndarray, k: np.float32) -> np.ndarray:
+def logarithmic_correction(
+    img_in: np.ndarray, img_out: np.ndarray, k: np.float32
+) -> np.ndarray:
     for row in prange(0, img_out.shape[0]):
         for col in prange(0, img_out.shape[1]):
             img_out[row][col] = k * np.log(img_in[row][col] + 1)
@@ -97,28 +97,13 @@ def equalization_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarr
 
 
 def spline_correction(
-        img_in: np.ndarray,
-        img_out: np.ndarray,
-        xp: np.ndarray,
-        fp: np.ndarray,
+    img_in: np.ndarray,
+    img_out: np.ndarray,
+    xp: np.ndarray,
+    fp: np.ndarray,
 ) -> np.ndarray:
     spline = inp.CubicSpline(xp, fp)
     intensities = np.arange(256)
     lut = np.clip(spline(intensities), 0, 255).astype(np.uint8)
     cv2.LUT(img_in, lut, img_out).astype(np.uint8)
-    return img_out
-
-
-def make_correction(
-    img_in: np.ndarray,
-    model: Callable[[np.ndarray, ...], np.ndarray],
-    *args,
-    **kwargs
-):
-    img_out = np.copy(img_in)
-    model(img_in, img_out, *args)
-    dir_out = kwargs.get('dir_out', None)
-    filename_out = kwargs.get('filename_out', None)
-    if dir_out and filename_out:
-        save_img(img_out, dir_out, filename_out)
     return img_out
