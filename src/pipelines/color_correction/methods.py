@@ -1,6 +1,6 @@
 import numpy as np
 from numba import njit, prange
-from src.utils.image_hist import normalized_hists
+from src.pipelines.image_description.methods import normalized_hists
 import scipy.interpolate as inp
 import cv2
 

@@ -13,7 +13,6 @@ def import_routers(target_path: str):
                 root = root.replace(os.getcwd(), "")
                 module_name = os.path.splitext(filename)[0]
                 module_path = os.path.join(root, module_name).replace(os.sep, ".")[1:]
-
                 try:
                     module = importlib.import_module(module_path)
                     if hasattr(module, "router"):
@@ -25,3 +24,4 @@ def import_routers(target_path: str):
                     loguru.logger.info(f"Failed to import module '{module_path}'")
 
     return routes
+

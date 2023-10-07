@@ -1,5 +1,6 @@
-from src.utils.fs_io import open_img, make_path
-from src.utils.image_hist import plot_channel_hists
+from typing import Callable
+from src.utils.fs_io import open_img, make_path, save_img
+from src.pipelines.image_description.methods import plot_channel_hists
 from src.pipelines.color_correction.methods import *
 from src.models.schemas.fs_io import IOEntry
 
