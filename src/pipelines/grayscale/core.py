@@ -1,6 +1,10 @@
 import cv2
 from src.utils.fs_io import make_path
-from src.pipelines.grayscale.methods import convert_to_grayscale, to_gray_v1, pics_diff
+from src.pipelines.grayscale.methods import (
+    convert_to_grayscale_v1,
+    to_gray_v1,
+    pics_diff,
+)
 
 
 def run_motion_detector(inputs_dir: str, video_in: str, outputs_dir: str):
@@ -27,7 +31,7 @@ def run_motion_detector(inputs_dir: str, video_in: str, outputs_dir: str):
         if not ret:
             break
 
-        curr_frame = convert_to_grayscale(curr_frame, to_gray_v1, True)
+        curr_frame = convert_to_grayscale_v1(curr_frame, to_gray_v1, True)
 
         if prev_frame is None:
             prev_frame = curr_frame

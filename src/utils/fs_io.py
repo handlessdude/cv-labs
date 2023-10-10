@@ -2,6 +2,8 @@ import numpy as np
 from PIL import Image
 import os
 import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
 
 
 def make_path(dir_in: str, filename_in: str):
@@ -27,3 +29,11 @@ def open_img(dir_in: str, filename_in: str):
     if img_as_array.shape[2] == 4:
         img_as_array = img_as_array[:, :, 0:3]
     return img_as_array
+
+
+def img_to_base64(img_in: np.ndarray, format: str = "png"):
+    buffer_in = BytesIO()
+    Image.fromarray(img_in).save(buffer_in, format=format.upper())
+    return "data:image/png;base64," + base64.b64encode(buffer_in.getvalue()).decode(
+        "utf-8"
+    )

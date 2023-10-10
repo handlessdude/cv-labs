@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit
+from numba import njit, prange
 
 
 cfs_v1 = np.array([0.3, 0.59, 0.11], dtype=np.float32)
@@ -24,7 +24,7 @@ def to_gray_v1(pixel: np.ndarray) -> np.ndarray:
     return np.array([k, k, k]).astype(np.uint8)
 
 
-def convert_to_grayscale(img_as_array: np.ndarray, model, use_bgr=False):
+def map_pixels(img_as_array: np.ndarray, model, use_bgr=False):
     converted_img = np.array(
         [
             np.array([model(pixel[::-1] if use_bgr else pixel) for pixel in line])
@@ -32,6 +32,10 @@ def convert_to_grayscale(img_as_array: np.ndarray, model, use_bgr=False):
         ]
     )
     return converted_img
+
+
+def convert_to_grayscale_v1(img_as_array: np.ndarray):
+    return map_pixels(img_as_array, to_gray_v1)
 
 
 def pics_diff(first_img_in: np.ndarray, second_img_in: np.ndarray):
