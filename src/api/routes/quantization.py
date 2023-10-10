@@ -75,7 +75,6 @@ async def quantitize(
     )
 
     img_out = convert_to_quantitized(img_in, levels)
-    print(img_out)
     ri_out, gi_out, bi_out = describe_channels(np.asarray(img_out))
     img_out_schema = ImageSchema(
         id=uuid4(),
