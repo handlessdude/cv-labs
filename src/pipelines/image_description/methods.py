@@ -4,6 +4,22 @@ import matplotlib.pyplot as plt
 from src.utils.fs_io import save_plot
 
 
+def describe_channel(channel: np.ndarray) -> np.ndarray:
+    """
+    :param channel: single channel of some image, e.g. channel's shape is (h, w)
+    :return: channel's intensity histogram
+    """
+    histogram = np.zeros(256, dtype=int)
+    height, width = channel.shape
+
+    for y in range(height):
+        for x in range(width):
+            pixel_value = channel[y, x]
+            histogram[pixel_value] += 1
+
+    return histogram
+
+
 @njit(cache=True)
 def describe_channels(img: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray):
     r_intensities, g_intensities, b_intensities = (
