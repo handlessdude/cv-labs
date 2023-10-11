@@ -1,5 +1,6 @@
 import numpy as np
 from numba import njit, prange
+from typing import Callable
 
 
 cfs_v1 = np.array([0.3, 0.59, 0.11], dtype=np.float32)
@@ -24,11 +25,13 @@ def to_gray_v1(pixel: np.ndarray) -> np.ndarray:
     return np.array([k, k, k]).astype(np.uint8)
 
 
-def map_pixels(img_as_array: np.ndarray, model, use_bgr=False):
+def map_pixels(
+    img_in: np.ndarray, model: Callable[[np.ndarray], np.ndarray], use_bgr=False
+):
     converted_img = np.array(
         [
             np.array([model(pixel[::-1] if use_bgr else pixel) for pixel in line])
-            for line in img_as_array
+            for line in img_in
         ]
     )
     return converted_img

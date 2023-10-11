@@ -1,10 +1,42 @@
 import numpy as np
-from numba import njit, prange
+from numba import jit, prange
 from src.pipelines.image_description.methods import describe_channel
 from src.pipelines.grayscale.methods import convert_to_grayscale_v1
 
 
-@njit(parallel=True, cache=True)
+@jit(cache=True)
+def otsu_thresholding(image: np.ndarray) -> int:
+    # Calculate a local histogram
+    histogram = describe_channel(image)
+
+    # Variables to store best threshold and best between-class variance
+    best_threshold = 0
+    best_variance = 0
+
+    for threshold in range(256):
+        # Class probabilities
+        w0 = histogram[:threshold].sum()
+        w1 = histogram[threshold:].sum()
+
+        if w0 == 0 or w1 == 0:
+            continue
+
+        # Class means (weighted)
+        mean0 = np.dot(np.arange(threshold), histogram[:threshold]) / w0
+        mean1 = np.dot(np.arange(threshold, 256), histogram[threshold:]) / w1
+
+        # Between-class variance
+        between_class_variance = w0 * w1 * (mean0 - mean1) ** 2
+
+        # Check if the variance is greater than the best found so far
+        if between_class_variance > best_variance:
+            best_variance = between_class_variance
+            best_threshold = threshold
+
+    return best_threshold
+
+
+@jit(parallel=True, cache=True)
 def otsu_local_binarization(image: np.ndarray, window_size: int = 5) -> np.ndarray:
     grayscaled = convert_to_grayscale_v1(image)[:, :, 0]
     height, width = grayscaled.shape
@@ -36,35 +68,3 @@ def otsu_local_binarization(image: np.ndarray, window_size: int = 5) -> np.ndarr
                 output[y, x] = 0
 
     return np.dstack((output, output, output))
-
-
-@njit(cache=True)
-def otsu_thresholding(image: np.ndarray) -> int:
-    # Calculate a local histogram
-    histogram = describe_channel(image)
-
-    # Variables to store best threshold and best between-class variance
-    best_threshold = 0
-    best_variance = 0
-
-    for threshold in range(256):
-        # Class probabilities
-        w0 = histogram[:threshold].sum()
-        w1 = histogram[threshold:].sum()
-
-        if w0 == 0 or w1 == 0:
-            continue
-
-        # Class means (weighted)
-        mean0 = np.dot(np.arange(threshold), histogram[:threshold]) / w0
-        mean1 = np.dot(np.arange(threshold, 256), histogram[threshold:]) / w1
-
-        # Between-class variance
-        between_class_variance = w0 * w1 * (mean0 - mean1) ** 2
-
-        # Check if the variance is greater than the best found so far
-        if between_class_variance > best_variance:
-            best_variance = between_class_variance
-            best_threshold = threshold
-
-    return best_threshold
