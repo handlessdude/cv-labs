@@ -10,5 +10,6 @@ class ImageHist(BaseSchemaModel):
 
 class ImageSchema(BaseSchemaModel):
     id: UUID4
+    name: str
     img_src: str
     hist: ImageHist

@@ -17,7 +17,7 @@ from src.config.base import ROOT_DIR
 
 router = APIRouter(prefix="/color-correction", tags=["color-correction"])
 
-dir_in = f"{str(ROOT_DIR)}/app-data/inputs/02"
+dir_in = f"{str(ROOT_DIR)}/app-data/inputs"
 default_image = "normalization.png"
 
 
