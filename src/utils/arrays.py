@@ -23,4 +23,4 @@ def get_first_nonzero(arr_in: np.ndarray):
 
 
 def get_last_nonzero(arr_in: np.ndarray):
-    return get_first_nonzero(arr_in[::-1])
+    return 255 - get_first_nonzero(np.flip(arr_in))
