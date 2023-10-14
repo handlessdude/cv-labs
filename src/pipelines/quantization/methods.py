@@ -1,6 +1,8 @@
 import numpy as np
 from numba import njit, prange
 import cv2
+
+from src.pipelines.grayscale.methods import convert_to_grayscale_v1
 from src.pipelines.image_description.methods import describe_channels
 
 halftone_cfs = np.array([0.0721, 0.7154, 0.2125], dtype=np.float32)
@@ -44,7 +46,7 @@ def last_of(np_array, cond):
     return None
 
 
-def otsuThreshold(img_in, __min=1, __max=255):
+def get_otsu_threshold(img_in, __min=1, __max=255):
     temp_hist, _, _ = describe_channels(img_in)
 
     _min = max(__min, first_of(temp_hist, lambda x: x > 0))
@@ -82,13 +84,18 @@ def otsuThreshold(img_in, __min=1, __max=255):
     return threshold
 
 
-def binarization(img_in, t):
-    lut = np.zeros(0, dtype=np.uint8)
-    lut = np.append(lut, [np.repeat(0, t)])
-    lut = np.append(lut, [np.repeat(255, 256 - t)])
-    qF = cv2.LUT(img_in, lut)
-    return qF.astype(np.uint8)
+def binarize(img_in: np.ndarray, threshold: np.uint8):
+    below_threshold = np.repeat(0, threshold)
+    above_threshold = np.repeat(255, 256 - threshold)
+    lut = np.concatenate((below_threshold, above_threshold), axis=0)
+    binarized_img = cv2.LUT(img_in, lut)
+    return binarized_img.astype(np.uint8)
 
 
 def otsu_global_binarization(img_in: np.ndarray):
-    return binarization(img_in, otsuThreshold(img_in))
+    grayscale_img = convert_to_grayscale_v1(img_in)
+    return binarize(grayscale_img, get_otsu_threshold(grayscale_img))
+
+
+def otsu_hierarchical_binarization(img_in: np.ndarray):
+    return otsu_global_binarization(img_in)

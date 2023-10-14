@@ -9,6 +9,7 @@ from src.pipelines.quantization.methods import (
     convert_to_halftone,
     convert_to_quantitized,
     otsu_global_binarization,
+    otsu_hierarchical_binarization,
 )
 from src.pipelines.quantization.otsu import otsu_local_binarization
 from src.models.schemas.image import ImageSchema, ImageHist
@@ -116,7 +117,7 @@ async def otsu_hierarchical(
     img_in_id = uuid4()
     logger.info("Processing quantization for image {img_id}", img_id=img_in_id)
     img_in = open_img(dir_in, name)
-    img_out = otsu_global_binarization(img_in)
+    img_out = otsu_hierarchical_binarization(img_in)
     img_out_schema = get_image_schema(img_out, name)
     logger.info("Processing image {img_id} done", img_id=img_in_id)
     return img_out_schema

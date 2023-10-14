@@ -1,5 +1,5 @@
 from numba import njit, prange
-from typing import Callable
+from typing import Callable, List
 import numpy as np
 
 
@@ -15,3 +15,12 @@ def map_arr(
         for col in prange(0, copied.shape[1]):
             _out[row][col] = callback(copied[row][col])
     return _out
+
+
+def get_first_nonzero(arr_in: np.ndarray):
+    indices = np.flatnonzero(arr_in)
+    return indices[0] if len(indices) else None
+
+
+def get_last_nonzero(arr_in: np.ndarray):
+    return get_first_nonzero(arr_in[::-1])

@@ -1,13 +1,13 @@
 import numpy as np
-from numba import jit, prange
+from numba import njit, prange
 from src.pipelines.image_description.methods import describe_channel
 from src.pipelines.grayscale.methods import convert_to_grayscale_v1
 
 
-@jit(cache=True)
-def otsu_thresholding(image: np.ndarray) -> int:
+# @njit(cache=True)
+def otsu_thresholding(channel: np.ndarray) -> int:
     # Calculate a local histogram
-    histogram = describe_channel(image)
+    histogram = describe_channel(channel)
 
     # Variables to store best threshold and best between-class variance
     best_threshold = 0
@@ -36,9 +36,10 @@ def otsu_thresholding(image: np.ndarray) -> int:
     return best_threshold
 
 
-@jit(parallel=True, cache=True)
-def otsu_local_binarization(image: np.ndarray, window_size: int = 5) -> np.ndarray:
-    grayscaled = convert_to_grayscale_v1(image)[:, :, 0]
+# @njit(parallel=True, cache=True)
+def otsu_local_binarization(img_in: np.ndarray, window_size: int = 5) -> np.ndarray:
+    grayscaled = convert_to_grayscale_v1(img_in)[:, :, 0]
+
     height, width = grayscaled.shape
     output = np.zeros_like(grayscaled)
 

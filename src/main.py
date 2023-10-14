@@ -5,12 +5,11 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from src.api.endpoints import api_endpoint_router
-
+import uvicorn
 
 logger.add("app.log", rotation="500 MB", retention="7 days", level="INFO")
 
 app = FastAPI(title="CV-labs")
-
 
 origins = [
     "http://localhost:9000",
@@ -41,3 +40,13 @@ async def validation_exception_handler(request: Request, exc: ValidationExceptio
 
 
 app.include_router(router=api_endpoint_router, prefix="/api")
+
+
+if __name__ == "__main__":
+    uvicorn.run(
+        app="main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        workers=6,
+    )

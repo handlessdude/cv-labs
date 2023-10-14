@@ -37,8 +37,14 @@ def map_pixels(
     return converted_img
 
 
-def convert_to_grayscale_v1(img_as_array: np.ndarray):
-    return map_pixels(img_as_array, to_gray_v1)
+@njit(parallel=True, cache=True)
+def convert_to_grayscale_v1(img_in: np.ndarray):
+    height, width, _ = img_in.shape
+    channel = np.zeros((height, width), dtype=np.uint8)
+    for row in prange(0, height):
+        for col in prange(0, width):
+            channel[row][col] = to_gray_v1(img_in[row][col])[0]
+    return np.dstack((channel, channel, channel))
 
 
 def pics_diff(first_img_in: np.ndarray, second_img_in: np.ndarray):
