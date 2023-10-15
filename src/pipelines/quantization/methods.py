@@ -1,9 +1,12 @@
+from typing import List
+
 import numpy as np
 from numba import njit, prange
 import cv2
 
 from src.pipelines.grayscale.methods import convert_to_grayscale_v1
 from src.pipelines.image_description.methods import describe_channel
+from src.utils.fs_io import frames_to_channel, channel_to_img
 
 halftone_cfs = np.array([0.0721, 0.7154, 0.2125], dtype=np.float32)
 
@@ -78,39 +81,52 @@ def otsu_global_binarization(img_in: np.ndarray):
     return binarize(grayscale_img, get_otsu_threshold(grayscale_channel))
 
 
-# @njit(parallel=True, cache=True)
-def otsu_local_binarization(img_in: np.ndarray, window_size: int = 5) -> np.ndarray:
-    grayscaled = convert_to_grayscale_v1(img_in)[:, :, 0]
+def otsu_local_binarization(img_in: np.ndarray, y_delims: np.ndarray) -> np.ndarray:
+    """
+    :param img_in: single channel of some image, e.g. channel's shape is (h, w)
+    :param frames: array of rects, e.g. ((y,x), (y,x)), where first element is top left corner
+    :return: channel's intensity histogram
+    """
+    grayscale_channel = convert_to_grayscale_v1(img_in)[:, :, 0]
 
-    height, width = grayscaled.shape
-    output = np.zeros_like(grayscaled)
+    height, width = grayscale_channel.shape
 
-    for y in prange(height):
-        for x in prange(width):
-            # Calculate the local region for the current pixel
-            x1, x2, y1, y2 = (
-                x - window_size,
-                x + window_size + 1,
-                y - window_size,
-                y + window_size + 1,
-            )
+    clip = np.vectorize(lambda x: max(0, min(height, x)))
+    y_delims = np.unique(
+        np.concatenate((np.array([0]), np.sort(clip(y_delims)), np.array([height])))
+    )
+    y_intervals = list(zip(y_delims[:-1], y_delims[1:]))
+    frames = [grayscale_channel[y0:y1, :] for y0, y1 in y_intervals]
 
-            # Ensure the region is within the image boundaries
-            x1, x2, y1, y2 = max(0, x1), min(width, x2), max(0, y1), min(height, y2)
+    # output = np.zeros_like(grayscale_channel)
+    # for y in range(height):
+    #     for x in range(width):
+    #         # Calculate the local region for the current pixel
+    #         x1, x2, y1, y2 = (
+    #             x - window_size,
+    #             x + window_size + 1,
+    #             y - window_size,
+    #             y + window_size + 1,
+    #         )
+    #
+    #         # Ensure the region is within the image boundaries
+    #         x1, x2, y1, y2 = max(0, x1), min(width, x2), max(0, y1), min(height, y2)
+    #
+    #         # Extract the local region
+    #         local_region = grayscale_channel[y1:y2, x1:x2]
+    #
+    #         # Calculate the local Otsu threshold
+    #         local_threshold = get_otsu_threshold(local_region)
+    #
+    #         # Apply the threshold to the current pixel
+    #         if grayscale_channel[y, x] > local_threshold:
+    #             output[y, x] = 255
+    #         else:
+    #             output[y, x] = 0
 
-            # Extract the local region
-            local_region = grayscaled[y1:y2, x1:x2]
-
-            # Calculate the local Otsu threshold
-            local_threshold = get_otsu_threshold(local_region)
-
-            # Apply the threshold to the current pixel
-            if grayscaled[y, x] > local_threshold:
-                output[y, x] = 255
-            else:
-                output[y, x] = 0
-
-    return np.dstack((output, output, output))
+    channel_out = frames_to_channel(frames)
+    img_out = channel_to_img(channel_out)
+    return img_out
 
 
 def otsu_hierarchical_binarization(img_in: np.ndarray):

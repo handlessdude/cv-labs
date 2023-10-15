@@ -99,7 +99,7 @@ async def otsu_local(
     img_in_id = uuid4()
     logger.info("Processing quantization for image {img_id}", img_id=img_in_id)
     img_in = open_img(dir_in, name)
-    img_out = otsu_local_binarization(img_in)
+    img_out = otsu_local_binarization(img_in, np.array([200, 400]))
     img_out_schema = get_image_schema(img_out, name)
     logger.info("Processing image {img_id} done", img_id=img_in_id)
     return img_out_schema

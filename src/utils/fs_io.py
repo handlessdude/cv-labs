@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 from PIL import Image
 import os
@@ -37,3 +39,16 @@ def img_to_base64(img_in: np.ndarray, format: str = "png"):
     return "data:image/png;base64," + base64.b64encode(buffer_in.getvalue()).decode(
         "utf-8"
     )
+
+
+def channels_to_img(r: np.ndarray, g: np.ndarray, b: np.ndarray):
+    print(r.shape, g.shape, b.shape)
+    return np.dstack((r, g, b))
+
+
+def channel_to_img(gs_channel: np.ndarray):
+    return channels_to_img(gs_channel, gs_channel, gs_channel)
+
+
+def frames_to_channel(frames: List[np.ndarray]):
+    return np.vstack(tuple(frames))
