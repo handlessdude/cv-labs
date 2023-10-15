@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 from numba import njit, prange
 import cv2
@@ -91,40 +89,24 @@ def otsu_local_binarization(img_in: np.ndarray, y_delims: np.ndarray) -> np.ndar
 
     height, width = grayscale_channel.shape
 
-    clip = np.vectorize(lambda x: max(0, min(height, x)))
+    clip = np.vectorize(
+        lambda x, lower_bound, upper_bound: max(lower_bound, min(upper_bound, x))
+    )
+
     y_delims = np.unique(
-        np.concatenate((np.array([0]), np.sort(clip(y_delims)), np.array([height])))
+        np.concatenate(
+            (np.array([0]), np.sort(clip(y_delims, 0, height)), np.array([height]))
+        )
     )
     y_intervals = list(zip(y_delims[:-1], y_delims[1:]))
     frames = [grayscale_channel[y0:y1, :] for y0, y1 in y_intervals]
+    frames_count = len(frames)
+    frames_out = [None for _ in range(frames_count)]
 
-    # output = np.zeros_like(grayscale_channel)
-    # for y in range(height):
-    #     for x in range(width):
-    #         # Calculate the local region for the current pixel
-    #         x1, x2, y1, y2 = (
-    #             x - window_size,
-    #             x + window_size + 1,
-    #             y - window_size,
-    #             y + window_size + 1,
-    #         )
-    #
-    #         # Ensure the region is within the image boundaries
-    #         x1, x2, y1, y2 = max(0, x1), min(width, x2), max(0, y1), min(height, y2)
-    #
-    #         # Extract the local region
-    #         local_region = grayscale_channel[y1:y2, x1:x2]
-    #
-    #         # Calculate the local Otsu threshold
-    #         local_threshold = get_otsu_threshold(local_region)
-    #
-    #         # Apply the threshold to the current pixel
-    #         if grayscale_channel[y, x] > local_threshold:
-    #             output[y, x] = 255
-    #         else:
-    #             output[y, x] = 0
+    for idx in prange(frames_count):
+        frames_out[idx] = binarize(frames[idx], get_otsu_threshold(frames[idx]))
 
-    channel_out = frames_to_channel(frames)
+    channel_out = frames_to_channel(frames_out)
     img_out = channel_to_img(channel_out)
     return img_out
 
