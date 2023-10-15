@@ -40,42 +40,43 @@ def convert_to_quantitized(img_in: np.ndarray, levels: np.ndarray):
     return quantitized_img.astype(np.uint8)
 
 
-def get_otsu_threshold(grayscale_channel: np.ndarray, __min=1, __max=255):
+def get_otsu_threshold(
+    grayscale_channel: np.ndarray, lb: np.uint8 = 1, ub: np.uint8 = 255
+):
     hist = describe_channel(grayscale_channel)
+    prob = hist / hist.sum()
 
-    lower = np.max([__min, get_first_nonzero(hist)])
-    upper = np.min([__max, get_last_nonzero(hist)])
+    lower_i = np.max([lb, get_first_nonzero(hist)])
+    upper_i = np.min([ub, get_last_nonzero(hist)])
 
-    hist = hist / sum(hist[lower : (upper + 1)])
+    expectation = 0
+    for i in range(lower_i + 1, upper_i + 1):
+        expectation += i * prob[i]
 
-    m = 0
-    for t in range(lower + 1, upper + 1):
-        m += t * hist[t]
+    best_threshold = lower_i
 
-    threshold = lower
+    w0, w1 = prob[lower_i], 1 - prob[lower_i]
+    mean0, mean1 = lower_i, expectation / w1
 
-    q1 = hist[lower]
-    q2 = 1 - q1
-    mu1 = lower  # * hist[_min] / q1
-    mu2 = m / q2
+    max_variance = w0 * w1 * (mean0 - mean1) ** 2
 
-    maxSigma = q1 * q2 * (mu1 - mu2) * (mu1 - mu2)
+    for i in range(lower_i + 1, upper_i):
+        mean0 = mean0 * w0 + i * prob[i]
+        mean1 = mean1 * w1 - i * prob[i]
 
-    for t in range(lower + 1, upper):
-        mu1 = mu1 * q1 + t * hist[t]
-        mu2 = mu2 * q2 - t * hist[t]
+        w0 += prob[i]
+        w1 = 1 - w0
 
-        q1 += hist[t]
-        q2 = 1 - q1
+        mean0 = mean0 / w0
+        mean1 = mean1 / w1
 
-        mu1 = mu1 / q1
-        mu2 = mu2 / q2
+        between_class_variance = w0 * w1 * (mean0 - mean1) ** 2
 
-        newSigma = q1 * q2 * (mu1 - mu2) * (mu1 - mu2)
-        if maxSigma < newSigma:
-            threshold = t
-            maxSigma = newSigma
-    return threshold
+        if between_class_variance > max_variance:
+            best_threshold = i
+            max_variance = between_class_variance
+
+    return best_threshold
 
 
 def binarize(img_in: np.ndarray, threshold: np.uint8):
