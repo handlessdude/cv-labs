@@ -10,8 +10,8 @@ from src.pipelines.quantization.methods import (
     convert_to_quantitized,
     otsu_global_binarization,
     otsu_hierarchical_binarization,
+    otsu_local_binarization,
 )
-from src.pipelines.quantization.otsu import otsu_local_binarization
 from src.models.schemas.image import ImageSchema, ImageHist
 from src.utils.fs_io import open_img
 from src.config.base import ROOT_DIR
