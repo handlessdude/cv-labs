@@ -41,7 +41,7 @@ def convert_to_quantitized(img_in: np.ndarray, levels: np.ndarray):
     return quantitized_img.astype(np.uint8)
 
 
-def get_otsu_threshold(
+def get_otsu_threshold_sosi(
     grayscale_channel: np.ndarray,
     hist_lb: np.uint8 = 0,
     hist_ub: np.uint8 = 255,
@@ -54,16 +54,18 @@ def get_otsu_threshold(
 
     best_threshold, max_variance = 0, 0
 
-    # for threshold in range(256):
     for threshold in range(left_edge, right_edge + 1):
-        w0 = prob[:threshold].sum()
-        w1 = prob[threshold:].sum()
+        prob_below = prob[left_edge:threshold]
+        prob_above = prob[threshold : right_edge + 1]
+
+        w0 = prob_below.sum()
+        w1 = prob_above.sum()
 
         if w0 == 0 or w1 == 0:
             continue
 
-        mean0 = np.dot(np.arange(threshold), prob[:threshold]) / w0
-        mean1 = np.dot(np.arange(threshold, 256), prob[threshold:]) / w1
+        mean0 = np.dot(np.arange(left_edge, threshold), prob_below) / w0
+        mean1 = np.dot(np.arange(threshold, right_edge + 1), prob_above) / w1
 
         between_class_variance = w0 * w1 * (mean0 - mean1) ** 2
 
@@ -85,7 +87,7 @@ def binarize(img_in: np.ndarray, threshold: np.uint8):
 def otsu_global_binarization(img_in: np.ndarray):
     grayscale_img = convert_to_grayscale_v1(img_in)
     grayscale_channel = grayscale_img[:, :, 0]
-    return binarize(grayscale_img, get_otsu_threshold(grayscale_channel))
+    return binarize(grayscale_img, get_otsu_threshold_sosi(grayscale_channel))
 
 
 def otsu_local_binarization(img_in: np.ndarray, y_delims: np.ndarray) -> np.ndarray:
@@ -113,7 +115,7 @@ def otsu_local_binarization(img_in: np.ndarray, y_delims: np.ndarray) -> np.ndar
     frames_out = [None for _ in range(frames_count)]
 
     for idx in prange(frames_count):
-        frames_out[idx] = binarize(frames[idx], get_otsu_threshold(frames[idx]))
+        frames_out[idx] = binarize(frames[idx], get_otsu_threshold_sosi(frames[idx]))
 
     channel_out = frames_to_channel(frames_out)
     img_out = channel_to_img(channel_out)
@@ -129,7 +131,7 @@ def otsu_hierarchical_step(
 ):
     if depth == 0 or (hist_ub - hist_lb) <= min_interval:
         return []
-    t = get_otsu_threshold(channel, hist_lb, hist_ub)
+    t = get_otsu_threshold_sosi(channel, hist_lb, hist_ub)
     thresholds_below = otsu_hierarchical_step(
         channel, depth - 1, hist_lb, t - 1, min_interval
     )
@@ -140,7 +142,6 @@ def otsu_hierarchical_step(
     levels = np.sort(
         np.unique(np.concatenate((thresholds_below, np.array([t]), thresholds_above)))
     )
-    print(thresholds_below, t, thresholds_above, "levels ---> ", levels)
     return levels
 
 
