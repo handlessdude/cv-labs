@@ -21,7 +21,7 @@ default_image = "gosling1.png"
     response_model=ImageSchema,
     status_code=status.HTTP_200_OK,
 )
-async def halftone(
+async def get_image(
     name: str = Query(description="Image name", default=default_image),
 ):
     img_in_id = uuid4()
