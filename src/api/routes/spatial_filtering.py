@@ -1,12 +1,10 @@
 from fastapi import APIRouter
-from uuid import uuid4
 from fastapi import status
 from fastapi import Query
 from src.models.schemas.image import ImageSchema
 from src.pipelines.spatial_filtering.core import enhance_skeletons
 from src.utils.fs_io import open_img
 from src.config.base import ROOT_DIR
-from src.utils.fs_io import img_to_base64
 from typing import Sequence
 
 from src.utils.images import get_image_schema
@@ -30,6 +28,7 @@ async def skeleton_enhancement(
     img_in_schemes = [get_image_schema(img_in, name)]
     pipeline_imgs = enhance_skeletons(img_in)
     pipeline_imgs_schemes = [
-        get_image_schema(img, idx) for idx, img in enumerate(pipeline_imgs)
+        get_image_schema(img, "{step}_step.png".format(step=idx))
+        for idx, img in enumerate(pipeline_imgs)
     ]
     return img_in_schemes + pipeline_imgs_schemes

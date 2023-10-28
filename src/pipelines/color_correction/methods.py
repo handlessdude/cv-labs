@@ -54,6 +54,14 @@ def linear_correction(img_in: np.ndarray, img_out: np.ndarray) -> np.ndarray:
     return img_out.astype(np.uint8)
 
 
+def gamma_correction(img_in: np.ndarray, gamma: np.float32):
+    k = 1 / 255.0
+    lut = np.array([((i * k) ** gamma) * 255 for i in np.arange(0, 256)]).astype(
+        np.uint8
+    )
+    return cv2.LUT(img_in, lut)
+
+
 @njit(parallel=True, cache=True)
 def logarithmic_correction(
     img_in: np.ndarray, img_out: np.ndarray, k: np.float32
