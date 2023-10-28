@@ -16,21 +16,12 @@ from src.models.schemas.image import ImageSchema, ImageHist
 from src.utils.fs_io import open_img
 from src.config.base import ROOT_DIR
 from src.utils.fs_io import img_to_base64
+from src.utils.images import get_image_schema
 
 router = APIRouter(prefix="/quantization", tags=["quantization"])
 
 dir_in = f"{str(ROOT_DIR)}/app-data/inputs"
 default_image = "gosling1.png"
-
-
-def get_image_schema(img_in: np.ndarray, name: str):
-    ri_out, gi_out, bi_out = describe_channels(img_in)
-    return ImageSchema(
-        id=uuid4(),
-        name=name,
-        img_src=img_to_base64(img_in),
-        hist=ImageHist(r=ri_out, g=gi_out, b=bi_out),
-    )
 
 
 @router.get(
