@@ -13,7 +13,7 @@ import cv2 as cv
 router = APIRouter(prefix="/frequency-filtering", tags=["frequency-filtering"])
 
 dir_in = f"{str(ROOT_DIR)}/app-data/inputs"
-default_image = "flower.jpg"
+default_image = "letters.png"
 
 
 class FilterApplicationSchema(BaseSchemaModel):
@@ -59,14 +59,8 @@ def get_frequency_filtering_schema(
 async def smoothen_sharpen(
     name: str = Query(description="Image name", default=default_image),
 ):
-    # img_in = cv.cvtColor(
-    #     cv.imread(make_path(dir_in, default_image), cv.IMREAD_COLOR), cv.COLOR_BGR2GRAY
-    # )
     img_in = cv.imread(make_path(dir_in, default_image), cv.IMREAD_GRAYSCALE)
-
     source_schema = get_image_schema(img_in, name, include_hist=False)
-
-    # print(img_in.shape) # h, w, channels
     pipeline_imgs = fft_smoothen_sharpen(img_in)
 
     spectrum_schema = get_image_schema(
