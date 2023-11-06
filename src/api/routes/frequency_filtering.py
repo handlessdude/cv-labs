@@ -13,7 +13,7 @@ import cv2 as cv
 router = APIRouter(prefix="/frequency-filtering", tags=["frequency-filtering"])
 
 dir_in = f"{str(ROOT_DIR)}/app-data/inputs"
-default_image = "letters.png"
+default_image = "gosling1.png"
 
 
 class FilterApplicationSchema(BaseSchemaModel):
@@ -26,6 +26,7 @@ class FrequencyFilteringSchema(BaseSchemaModel):
     source: ImageSchema
     spectrum: ImageSchema
     smoothing_schema: FilterApplicationSchema
+    sharpening_schema: FilterApplicationSchema
 
 
 def get_frequency_filtering_schema(
@@ -74,8 +75,15 @@ async def smoothen_sharpen(
         pipeline_imgs["smoothing"]["img_out"],
         "smoothing",
     )
+    sharpening_schema = get_frequency_filtering_schema(
+        pipeline_imgs["sharpening"]["filter"],
+        pipeline_imgs["sharpening"]["spectrum"],
+        pipeline_imgs["sharpening"]["img_out"],
+        "sharpening",
+    )
     return FrequencyFilteringSchema(
         source=source_schema,
         spectrum=spectrum_schema,
         smoothing_schema=smoothing_schema,
+        sharpening_schema=sharpening_schema,
     )
