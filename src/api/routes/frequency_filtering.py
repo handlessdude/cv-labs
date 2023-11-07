@@ -3,7 +3,7 @@ from fastapi import APIRouter
 from fastapi import status
 from fastapi import Query
 from src.models.schemas.image import ImageSchema
-from src.pipelines.frequency_filtering.core import apply_ideal_filter
+from src.pipelines.frequency_filtering.core import apply_ideal_filter, get_spectrum
 from src.utils.fs_io import open_img, make_path
 from src.config.base import ROOT_DIR
 from src.models.schemas.base import BaseSchemaModel
@@ -23,8 +23,6 @@ class FilterApplicationSchema(BaseSchemaModel):
 
 
 class FrequencyFilteringSchema(BaseSchemaModel):
-    source: ImageSchema
-    spectrum: ImageSchema
     smoothing_schema: FilterApplicationSchema
     sharpening_schema: FilterApplicationSchema
 
@@ -52,6 +50,24 @@ def get_frequency_filtering_schema(
 
 
 @router.get(
+    path="/get-spectrum",
+    name="frequency-filtering:get-spectrum",
+    response_model=ImageSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def get_spectrum_route(
+    name: str = Query(description="Image name", default=default_image),
+):
+    img_in = cv.imread(make_path(dir_in, name), cv.IMREAD_GRAYSCALE)
+    spectrum = get_spectrum(img_in)
+    return get_image_schema(
+        spectrum,
+        "{img_name}_spectrum.png".format(img_name=name),
+        include_hist=False,
+    )
+
+
+@router.get(
     path="/apply-ideal",
     name="frequency-filtering:apply-ideal",
     response_model=FrequencyFilteringSchema,
@@ -60,15 +76,9 @@ def get_frequency_filtering_schema(
 async def apply_ideal_filter_route(
     name: str = Query(description="Image name", default=default_image),
 ):
-    img_in = cv.imread(make_path(dir_in, default_image), cv.IMREAD_GRAYSCALE)
-    source_schema = get_image_schema(img_in, name, include_hist=False)
+    img_in = cv.imread(make_path(dir_in, name), cv.IMREAD_GRAYSCALE)
     pipeline_imgs = apply_ideal_filter(img_in)
 
-    spectrum_schema = get_image_schema(
-        pipeline_imgs["spectrum"],
-        "spectrum.png",
-        include_hist=False,
-    )
     smoothing_schema = get_frequency_filtering_schema(
         pipeline_imgs["smoothing"]["filter"],
         pipeline_imgs["smoothing"]["spectrum"],
@@ -82,8 +92,6 @@ async def apply_ideal_filter_route(
         "sharpening",
     )
     return FrequencyFilteringSchema(
-        source=source_schema,
-        spectrum=spectrum_schema,
         smoothing_schema=smoothing_schema,
         sharpening_schema=sharpening_schema,
     )

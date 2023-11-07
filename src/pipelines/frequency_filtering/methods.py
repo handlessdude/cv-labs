@@ -21,7 +21,7 @@ def log_of_abs(arr_in: np.ndarray):
     return np.log(np.abs(arr_in))
 
 
-def get_spectrum(img_in: np.ndarray):
+def get_raw_spectrum(img_in: np.ndarray):
     base_img = replace_zeros(img_in.astype(np.float32))
     dft = np.fft.fft2(base_img)
     dft_shift = np.fft.fftshift(dft)  # here applies filter
@@ -30,13 +30,13 @@ def get_spectrum(img_in: np.ndarray):
 
 
 def apply_filter(img_in: np.ndarray, filter: np.ndarray):
-    dft_shift, img_in_spectrum = get_spectrum(img_in)
+    dft_shift, img_in_spectrum = get_raw_spectrum(img_in)
 
     filter_applied = dft_shift * filter
 
     dft_ishift = np.fft.ifftshift(filter_applied)
     idft = np.fft.ifft2(dft_ishift)
     img_out = np.abs(idft)
-    _, img_out_spectrum = get_spectrum(img_out)
+    _, img_out_spectrum = get_raw_spectrum(img_out)
 
     return img_in_spectrum, img_out_spectrum, img_out

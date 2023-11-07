@@ -4,10 +4,16 @@ from src.pipelines.frequency_filtering.kernels import get_ideal_filter
 from src.pipelines.frequency_filtering.methods import (
     normalize_to_uint8,
     apply_filter,
+    get_raw_spectrum,
 )
 
 
 IDEAL_FILTER_R = 30
+
+
+def get_spectrum(img_in: np.ndarray):
+    _, img_in_spectrum = get_raw_spectrum(img_in)
+    return normalize_to_uint8(img_in_spectrum)
 
 
 def apply_ideal_filter(img_in: np.ndarray):
