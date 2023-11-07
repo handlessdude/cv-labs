@@ -22,7 +22,7 @@ class FilterApplicationSchema(BaseSchemaModel):
     img_out: ImageSchema
 
 
-class FrequencyFilteringSchema(BaseSchemaModel):
+class FilteringPipelineSchema(BaseSchemaModel):
     smoothing_schema: FilterApplicationSchema
     sharpening_schema: FilterApplicationSchema
 
@@ -70,7 +70,7 @@ async def get_spectrum_route(
 @router.get(
     path="/apply-ideal",
     name="frequency-filtering:apply-ideal",
-    response_model=FrequencyFilteringSchema,
+    response_model=FilteringPipelineSchema,
     status_code=status.HTTP_200_OK,
 )
 async def apply_ideal_filter_route(
@@ -91,7 +91,7 @@ async def apply_ideal_filter_route(
         pipeline_imgs["sharpening"]["img_out"],
         "sharpening",
     )
-    return FrequencyFilteringSchema(
+    return FilteringPipelineSchema(
         smoothing_schema=smoothing_schema,
         sharpening_schema=sharpening_schema,
     )
