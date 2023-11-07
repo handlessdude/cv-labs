@@ -5,65 +5,56 @@ from src.pipelines.frequency_filtering.methods import (
     normalize_to_uint8,
 )
 
+EPS = 1e-10
+IDEAL_FILTER_R = 30
+
+
+def replace_zeros(img_in: np.ndarray):
+    return np.where(img_in == 0, EPS, img_in)
+
 
 def log_of_abs(arr_in: np.ndarray):
     return np.log(np.abs(arr_in))
 
 
-def get_spectrum_from_img(img_in: np.ndarray):
-    # code piece actually from https://docs.opencv.org/4.x/de/dbc/tutorial_py_fourier_transform.html
-    f = np.fft.fft2(img_in)
-    fshift = np.fft.fftshift(f)
-    spectrum = log_of_abs(fshift)
-    return f, fshift, spectrum
+def get_spectrum(img_in: np.ndarray):
+    base_img = replace_zeros(img_in.astype(np.float32))
+    dft = np.fft.fft2(base_img)
+    dft_shift = np.fft.fftshift(dft)  # here applies filter
+    spectrum = log_of_abs(dft_shift)
+    return dft_shift, spectrum
 
 
-IDEAL_FILTER_R = 28
+def apply_filter(img_in: np.ndarray, filter: np.ndarray):
+    dft_shift, img_in_spectrum = get_spectrum(img_in)
+
+    filter_applied = dft_shift * filter
+
+    dft_ishift = np.fft.ifftshift(filter_applied)
+    idft = np.fft.ifft2(dft_ishift)
+    img_out = np.abs(idft)
+    _, img_out_spectrum = get_spectrum(img_out)
+
+    return img_in_spectrum, img_out_spectrum, img_out
 
 
-def fft_smoothen_sharpen(img_in: np.ndarray):
-    f, fshift, spectrum = get_spectrum_from_img(img_in)
-
+def apply_ideal_filter(img_in: np.ndarray):
     ideal_filter = get_ideal_filter(*img_in.shape, IDEAL_FILTER_R)
-
-    ideal_spectrum = fshift * ideal_filter
-    img_temp = np.fft.ifftshift(ideal_spectrum)
-    img_temp = np.fft.ifft2(img_temp)
-    ideal_image = np.real(img_temp)
-
-    ideal_filter_normalized = normalize_to_uint8(
-        ideal_filter
-    )  # have to do it bcuz we used np.float32 type
-
-    ideal_image_normalized = normalize_to_uint8(ideal_image)
-    _, _, ideal_image_spectrum = get_spectrum_from_img(ideal_image_normalized)
-    ideal_image_spectrum = normalize_to_uint8(ideal_image_spectrum)
+    img_in_spec, img_out_spec, img_out = apply_filter(img_in, ideal_filter)
 
     inverse_ideal_filter = 1 - ideal_filter
-    img_temp = fshift * inverse_ideal_filter
-    img_temp = np.fft.ifftshift(img_temp)
-    img_temp = np.fft.ifft2(img_temp)
-    sharpened_ideal_image = np.real(img_temp)
-
-    sharp_ideal_filter_normalized = normalize_to_uint8(
-        inverse_ideal_filter
-    )  # have to do it bcuz we used np.float32 type
-    sharp_ideal_image_normalized = normalize_to_uint8(sharpened_ideal_image)
-    _, _, sharp_ideal_image_spectrum = get_spectrum_from_img(
-        sharp_ideal_image_normalized
-    )
-    sharp_ideal_image_spectrum = normalize_to_uint8(sharp_ideal_image_spectrum)
+    _, iimg_out_spec, iimg_out = apply_filter(img_in, inverse_ideal_filter)
 
     return {
-        "spectrum": normalize_to_uint8(spectrum),
+        "spectrum": normalize_to_uint8(img_in_spec),
         "smoothing": {
-            "filter": ideal_filter_normalized,
-            "spectrum": ideal_image_spectrum,
-            "img_out": ideal_image_normalized,
+            "filter": normalize_to_uint8(ideal_filter),
+            "spectrum": normalize_to_uint8(img_out_spec),
+            "img_out": normalize_to_uint8(img_out),
         },
         "sharpening": {
-            "filter": sharp_ideal_filter_normalized,
-            "spectrum": sharp_ideal_image_spectrum,
-            "img_out": sharp_ideal_image_normalized,
+            "filter": normalize_to_uint8(inverse_ideal_filter),
+            "spectrum": normalize_to_uint8(iimg_out_spec),
+            "img_out": normalize_to_uint8(iimg_out),
         },
     }
