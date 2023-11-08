@@ -29,6 +29,11 @@ def get_raw_spectrum(img_in: np.ndarray):
     return dft_shift, spectrum
 
 
+def get_spectrum(img_in: np.ndarray):
+    _, img_in_spectrum = get_raw_spectrum(img_in)
+    return normalize_to_uint8(img_in_spectrum)
+
+
 def apply_filter(img_in: np.ndarray, filter: np.ndarray):
     dft_shift, img_in_spectrum = get_raw_spectrum(img_in)
 

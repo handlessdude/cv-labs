@@ -3,7 +3,12 @@ from fastapi import APIRouter
 from fastapi import status
 from fastapi import Query
 from src.models.schemas.image import ImageSchema
-from src.pipelines.frequency_filtering.core import apply_ideal_filter, get_spectrum
+from src.pipelines.frequency_filtering.core import (
+    apply_ideal_filter,
+    apply_butterworth_filter,
+    apply_gaussian_filter,
+)
+from src.pipelines.frequency_filtering.methods import get_spectrum
 from src.utils.fs_io import open_img, make_path
 from src.config.base import ROOT_DIR
 from src.models.schemas.base import BaseSchemaModel
@@ -25,6 +30,24 @@ class FilterApplicationSchema(BaseSchemaModel):
 class FilteringPipelineSchema(BaseSchemaModel):
     smoothing_schema: FilterApplicationSchema
     sharpening_schema: FilterApplicationSchema
+
+
+@router.get(
+    path="/get-spectrum",
+    name="frequency-filtering:get-spectrum",
+    response_model=ImageSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def get_spectrum_route(
+    name: str = Query(description="Image name", default=default_image),
+):
+    img_in = cv.imread(make_path(dir_in, name), cv.IMREAD_GRAYSCALE)
+    spectrum = get_spectrum(img_in)
+    return get_image_schema(
+        spectrum,
+        "{img_name}_spectrum.png".format(img_name=name),
+        include_hist=False,
+    )
 
 
 def get_frequency_filtering_schema(
@@ -49,36 +72,7 @@ def get_frequency_filtering_schema(
     )
 
 
-@router.get(
-    path="/get-spectrum",
-    name="frequency-filtering:get-spectrum",
-    response_model=ImageSchema,
-    status_code=status.HTTP_200_OK,
-)
-async def get_spectrum_route(
-    name: str = Query(description="Image name", default=default_image),
-):
-    img_in = cv.imread(make_path(dir_in, name), cv.IMREAD_GRAYSCALE)
-    spectrum = get_spectrum(img_in)
-    return get_image_schema(
-        spectrum,
-        "{img_name}_spectrum.png".format(img_name=name),
-        include_hist=False,
-    )
-
-
-@router.get(
-    path="/apply-ideal",
-    name="frequency-filtering:apply-ideal",
-    response_model=FilteringPipelineSchema,
-    status_code=status.HTTP_200_OK,
-)
-async def apply_ideal_filter_route(
-    name: str = Query(description="Image name", default=default_image),
-):
-    img_in = cv.imread(make_path(dir_in, name), cv.IMREAD_GRAYSCALE)
-    pipeline_imgs = apply_ideal_filter(img_in)
-
+def frequency_filtering_schema_adapter(pipeline_imgs: dict):
     smoothing_schema = get_frequency_filtering_schema(
         pipeline_imgs["smoothing"]["filter"],
         pipeline_imgs["smoothing"]["spectrum"],
@@ -95,3 +89,46 @@ async def apply_ideal_filter_route(
         smoothing_schema=smoothing_schema,
         sharpening_schema=sharpening_schema,
     )
+
+
+@router.get(
+    path="/apply-ideal",
+    name="frequency-filtering:apply-ideal",
+    response_model=FilteringPipelineSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def apply_ideal_filter_route(
+    name: str = Query(description="Image name", default=default_image),
+):
+    img_in = cv.imread(make_path(dir_in, name), cv.IMREAD_GRAYSCALE)
+    pipeline_imgs = apply_ideal_filter(img_in)
+    return frequency_filtering_schema_adapter(pipeline_imgs)
+
+
+@router.get(
+    path="/apply-butterworth",
+    name="frequency-filtering:apply-butterworth",
+    response_model=FilteringPipelineSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def apply_ideal_filter_route(
+    name: str = Query(description="Image name", default=default_image),
+):
+    img_in = cv.imread(make_path(dir_in, name), cv.IMREAD_GRAYSCALE)
+    pipeline_imgs = apply_butterworth_filter(img_in)
+    return frequency_filtering_schema_adapter(pipeline_imgs)
+
+
+@router.get(
+    path="/apply-gaussian",
+    name="frequency-filtering:apply-gaussian",
+    response_model=FilteringPipelineSchema,
+    status_code=status.HTTP_200_OK,
+)
+async def apply_ideal_filter_route(
+    name: str = Query(description="Image name", default=default_image),
+):
+    img_in = cv.imread(make_path(dir_in, name), cv.IMREAD_GRAYSCALE)
+    pipeline_imgs = apply_gaussian_filter(img_in)
+
+    return frequency_filtering_schema_adapter(pipeline_imgs)
