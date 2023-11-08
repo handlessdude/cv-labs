@@ -2,6 +2,11 @@ import numpy as np
 from fastapi import APIRouter
 from fastapi import status
 from fastapi import Query
+
+from src.models.schemas.frequency_filtering import (
+    FilterApplicationSchema,
+    FilteringPipelineSchema,
+)
 from src.models.schemas.image import ImageSchema
 from src.pipelines.frequency_filtering.core import (
     apply_ideal_filter,
@@ -9,9 +14,8 @@ from src.pipelines.frequency_filtering.core import (
     apply_gaussian_filter,
 )
 from src.pipelines.frequency_filtering.methods import get_spectrum
-from src.utils.fs_io import open_img, make_path
+from src.utils.fs_io import make_path
 from src.config.base import ROOT_DIR
-from src.models.schemas.base import BaseSchemaModel
 from src.utils.images import get_image_schema
 import cv2 as cv
 
@@ -19,17 +23,6 @@ router = APIRouter(prefix="/frequency-filtering", tags=["frequency-filtering"])
 
 dir_in = f"{str(ROOT_DIR)}/app-data/inputs"
 default_image = "letters.png"
-
-
-class FilterApplicationSchema(BaseSchemaModel):
-    filt: ImageSchema
-    spectrum: ImageSchema
-    img_out: ImageSchema
-
-
-class FilteringPipelineSchema(BaseSchemaModel):
-    smoothing_schema: FilterApplicationSchema
-    sharpening_schema: FilterApplicationSchema
 
 
 @router.get(
