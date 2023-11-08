@@ -28,7 +28,10 @@ def save_plot(dir_out: str, filename_out: str):
 
 def open_img(dir_in: str, filename_in: str):
     img_as_array = np.asarray(Image.open(make_path(dir_in, filename_in)))
-    if img_as_array.shape[2] == 4:
+    print(img_as_array.shape)
+    if len(img_as_array.shape) <= 2:
+        return channel_to_img(img_as_array)
+    elif img_as_array.shape[2] == 4:
         img_as_array = img_as_array[:, :, 0:3]
     return img_as_array
 
