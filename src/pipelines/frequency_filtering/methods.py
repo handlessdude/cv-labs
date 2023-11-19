@@ -6,10 +6,6 @@ def normalize_to_uint8(img_in: np.ndarray):
     return (img_in_normalized * 255).astype(np.uint8)
 
 
-def vec_len(first: np.ndarray, second: np.ndarray):
-    return np.linalg.norm(first - second)
-
-
 EPS = 1e-10
 
 

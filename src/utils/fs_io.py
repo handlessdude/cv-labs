@@ -6,6 +6,7 @@ import os
 import matplotlib.pyplot as plt
 from io import BytesIO
 import base64
+import cv2
 
 
 def make_path(dir_in: str, filename_in: str):
@@ -28,7 +29,6 @@ def save_plot(dir_out: str, filename_out: str):
 
 def open_img(dir_in: str, filename_in: str):
     img_as_array = np.asarray(Image.open(make_path(dir_in, filename_in)))
-    print(img_as_array.shape)
     if len(img_as_array.shape) <= 2:
         return channel_to_img(img_as_array)
     elif img_as_array.shape[2] == 4:
@@ -44,8 +44,20 @@ def img_to_base64(img_in: np.ndarray, format: str = "png"):
     )
 
 
+def base64_to_ndarray(base64_str: str) -> np.ndarray:
+    # Remove the header (e.g., "data:image/png;base64,") and decode
+    encoded_data = base64_str.split(',')[1]
+    decoded_bytes = base64.b64decode(encoded_data)
+
+    # Convert to a NumPy array
+    img_array = np.frombuffer(decoded_bytes, dtype=np.uint8)
+
+    # Decode the image using OpenCV
+    img = cv2.cvtColor(cv2.imdecode(img_array, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
+    return img
+
+
 def channels_to_img(r: np.ndarray, g: np.ndarray, b: np.ndarray):
-    print(r.shape, g.shape, b.shape)
     return np.dstack((r, g, b))
 
 

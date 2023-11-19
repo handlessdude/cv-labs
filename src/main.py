@@ -13,6 +13,7 @@ app = FastAPI(title="CV-labs")
 
 origins = [
     "http://localhost:9000",
+    "http://localhost:9005",
     "http://localhost:8000",
 ]
 

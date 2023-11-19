@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from src.pipelines.frequency_filtering.methods import vec_len
+from src.utils.arrays import vec_len
 
 
 def get_ideal_filter(shape0: int, shape1: int, r: int):

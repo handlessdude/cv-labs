@@ -24,3 +24,15 @@ def get_first_nonzero(arr_in: np.ndarray):
 
 def get_last_nonzero(arr_in: np.ndarray):
     return 255 - get_first_nonzero(np.flip(arr_in))
+
+def cartesian_product(*arrays):
+    la = len(arrays)
+    dtype = np.result_type(*arrays)
+    arr = np.empty([len(a) for a in arrays] + [la], dtype=dtype)
+    for i, a in enumerate(np.ix_(*arrays)):
+        arr[..., i] = a
+    return arr.reshape(-1, la)
+
+
+def vec_len(first: np.ndarray, second: np.ndarray):
+    return np.linalg.norm((first - second).astype(np.float32))
