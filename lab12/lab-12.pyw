@@ -1,49 +1,38 @@
-from __future__ import print_function
 import cv2
 import numpy as np
 
 
 WINNAME = 'HELLO ANYONE HERE'
-FILE_OUT = 'sosi.mp4'
-
+FILE_OUT = 'AAAA.mp4'
+PADDING_RATIO = 0.3
 
 def make_tracker(frame, bounding_box):
     tracker = cv2.TrackerCSRT_create()
     tracker.init(frame, bounding_box)
     return tracker
 
-def clip_bounds(lower: int, upper: int, lower_bound: int, upper_bound: int):
-    return np.clip(np.array([lower, upper]), lower_bound, upper_bound)
+def clip_bounds(values: np.ndarray, lower_bound: int, upper_bound: int):
+    return np.clip(values, lower_bound, upper_bound)
 
 
 def grabcut(frame, face):
     background_model = np.zeros((1, 65), np.float64)
     foreground_model = np.zeros((1, 65), np.float64)
 
-    (x, y, w, h) = face
-    (dside, dup, ddown) = (int(w * 0.3), int(h * 0.3), int(h))
+    frame_width, frame_height = frame.shape[1], frame.shape[0]
+    x, y, w, h = face
+    x_padding, y_padding = int(w * PADDING_RATIO), int(h * PADDING_RATIO)
 
-    top_left = (max(0, x - dside), max(y - dup, 0))
-    bottom_right = (min(frame.shape[1], x + w + dside), min(frame.shape[0], y + h + ddown))
-    (x_c, y_c) = (x + w // 2 - top_left[0], y + h // 2 - top_left[1])
+    tl_x, br_x = clip_bounds(np.array([x - x_padding, x + w + x_padding]), 0, frame_width)
+    tl_y, br_y = clip_bounds(np.array([y - y_padding, y + h + y_padding]), 0, frame_height)
 
-    mask = np.zeros((bottom_right[1] - top_left[1], bottom_right[0] - top_left[0]), np.uint8)
-    for dy in range(-h // 2, h // 2):
-        for dx in range(-w // 2, w // 2):
-            dy_normalized = dy / h
-            dx_normalized = dx / w
-            if pow(dy_normalized, 2) + pow(dx_normalized, 2) < 1:
-                y0 = y_c + dy
-                x0 = x_c + dx
-                if (0 <= y0 < mask.shape[0] and 0 <= x0 < mask.shape[1]):
-                    mask[y0, x0] = 255
-
-    frame_cropped = frame[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-    cv2.grabCut(frame_cropped, mask, (x - top_left[0], y - top_left[1], w, h), background_model, foreground_model, 1, cv2.GC_INIT_WITH_RECT)
+    mask_shape = (br_y - tl_y, br_x - tl_x)
+    mask = np.zeros(mask_shape, np.uint8)
+    frame_cropped = frame[tl_y:br_y, tl_x:br_x]
+    cv2.grabCut(frame_cropped, mask, (x - tl_x, y - tl_y, w, h), background_model, foreground_model, 1, cv2.GC_INIT_WITH_RECT)
 
     mask2 = np.where((mask == 2) | (mask == 0), 0, 1).astype(np.uint8)
-    tl_x, tl_y = top_left
-    br_x, br_y = bottom_right
+
     frame[tl_y:br_y, tl_x:br_x] = frame_cropped * mask2[:, :, np.newaxis]
     frame[br_y:] = 0
     frame[:tl_y] = 0
